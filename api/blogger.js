@@ -1,6 +1,6 @@
-import axios from 'axios';
+const axios = require('axios');
 
-export default async function handler(request, response) {
+module.exports = async (request, response) => {
   const { blogId, category, maxResults } = request.query;
 
   if (!blogId) {
@@ -12,17 +12,16 @@ export default async function handler(request, response) {
 
   try {
     const axiosResponse = await axios.get(bloggerApiUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0' } // Blogger-কে বোকা বানানোর জন্য হেডার
+        headers: { 'User-Agent': 'Mozilla/5.0' }
     });
     
     response.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
     return response.status(200).json(axiosResponse.data);
 
   } catch (error) {
-    // এরর হলে এরর মেসেজটি ফেরত পাঠানো, যা ডিবাগিং-এ সাহায্য করবে
     return response.status(500).json({ 
         error: 'Failed to fetch from Blogger API',
         details: error.message 
     });
   }
-}
+};
