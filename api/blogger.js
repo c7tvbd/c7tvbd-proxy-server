@@ -1,6 +1,16 @@
 const axios = require('axios');
 
 module.exports = async (request, response) => {
+  // CORS হেডার যোগ করা (এই অংশটিই মূল সমাধান)
+  response.setHeader('Access-Control-Allow-Origin', '*');
+  response.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+
+  // OPTIONS রিকোয়েস্ট হ্যান্ডেল করা (ব্রাউজার প্রথমে এটি পাঠায়)
+  if (request.method === 'OPTIONS') {
+    return response.status(200).end();
+  }
+
   const { blogId, category, maxResults } = request.query;
 
   if (!blogId) {
@@ -15,7 +25,6 @@ module.exports = async (request, response) => {
         headers: { 'User-Agent': 'Mozilla/5.0' }
     });
     
-    response.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
     return response.status(200).json(axiosResponse.data);
 
   } catch (error) {
