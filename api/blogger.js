@@ -1,4 +1,5 @@
-// Vercel Serverless Function
+import axios from 'axios';
+
 export default async function handler(request, response) {
   const { blogId, category, maxResults } = request.query;
 
@@ -6,20 +7,22 @@ export default async function handler(request, response) {
     return response.status(400).json({ error: 'Blog ID is required' });
   }
 
-  const categoryFilter = (category && category !== 'All Posts') ? `/-/${encodeURIComponent(category)}` : '';
+  const categoryFilter = (category && category !== 'All Posts') ? `/-/${category}` : '';
   const bloggerApiUrl = `https://www.blogger.com/feeds/${blogId}/posts/default${categoryFilter}?alt=json&max-results=${maxResults || 7}`;
 
   try {
-    const fetchResponse = await fetch(bloggerApiUrl);
-    if (!fetchResponse.ok) {
-      throw new Error(`Blogger API failed with status: ${fetchResponse.status}`);
-    }
-    const data = await fetchResponse.json();
+    const axiosResponse = await axios.get(bloggerApiUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0' } // Blogger-কে বোকা বানানোর জন্য হেডার
+    });
     
     response.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
-    return response.status(200).json(data);
+    return response.status(200).json(axiosResponse.data);
 
   } catch (error) {
-    return response.status(500).json({ error: error.message });
+    // এরর হলে এরর মেসেজটি ফেরত পাঠানো, যা ডিবাগিং-এ সাহায্য করবে
+    return response.status(500).json({ 
+        error: 'Failed to fetch from Blogger API',
+        details: error.message 
+    });
   }
 }
