@@ -17,7 +17,7 @@ module.exports = async (request, response) => {
     return response.status(400).json({ error: 'Blog ID is required' });
   }
 
-  const categoryFilter = (category && category !== 'Featured') ? `/-/${category}` : '';
+  const categoryFilter = (category && category !== 'Featured' && category !== 'All Posts') ? `/-/${encodeURIComponent(category)}` : '';
   const bloggerApiUrl = `https://www.blogger.com/feeds/${blogId}/posts/default${categoryFilter}?alt=json&max-results=${maxResults || 7}`;
 
   try {
