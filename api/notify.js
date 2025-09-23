@@ -1,4 +1,4 @@
-// <<--- notify.js এর সম্পূর্ণ কোড ---<<
+// <<--- notify.js এর নতুন এবং সম্পূর্ণ সঠিক কোড ---<<
 const admin = require('firebase-admin');
 
 // Firebase Admin SDK আরম্ভ করা
@@ -15,7 +15,7 @@ try {
 
 module.exports = async (request, response) => {
     // CORS হেডার যোগ করা
-    response.setHeader('Access-Control-Allow-Origin', '*'); // এখানে আপনার অ্যাডমিন প্যানেলের ডোমেইনও দিতে পারেন
+    response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     response.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
 
@@ -23,7 +23,6 @@ module.exports = async (request, response) => {
         return response.status(200).end();
     }
     
-    // শুধুমাত্র POST রিকোয়েস্ট গ্রহণ করা হবে
     if (request.method !== 'POST') {
         return response.status(405).json({ error: 'Method Not Allowed' });
     }
@@ -47,20 +46,24 @@ module.exports = async (request, response) => {
 
         const tokens = Object.keys(tokensObject);
 
-        const payload = {
+        // <<--- মূল পরিবর্তন এখানে ---<<
+        // ১. আমরা একটি 'message' অবজেক্ট তৈরি করছি
+        const messagePayload = {
             notification: {
                 title: title,
                 body: message,
                 icon: icon || '/icon-192.png'
             },
             webpush: {
-                fcm_options: {
-                    link: actionUrl || 'https://c7tvbdapp.web.app' // ডিফল্ট লিঙ্ক
+                fcmOptions: { // এখানে fcm_options এর বদলে fcmOptions হবে (camelCase)
+                    link: actionUrl || 'https://c7tvbdapp.web.app' 
                 }
-            }
+            },
+            tokens: tokens, // ২. টোকেনগুলো এখন message অবজেক্টের ভেতরে থাকবে
         };
 
-        const messagingResponse = await admin.messaging().sendToDevice(tokens, payload);
+        // ৩. sendToDevice এর বদলে sendMulticast ব্যবহার করা হচ্ছে
+        const messagingResponse = await admin.messaging().sendMulticast(messagePayload);
         
         console.log('Successfully sent message:', messagingResponse);
         return response.status(200).json({ success: true, results: messagingResponse.results });
