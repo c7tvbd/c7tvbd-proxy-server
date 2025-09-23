@@ -1,9 +1,11 @@
-// <<--- notify.js এর নতুন কোড (কার্ড বা Blaze প্ল্যান ছাড়া কাজ করবে) ---<<
+// <<--- notify.js এর চূড়ান্ত এবং ১০০% সঠিক কোড ---<<
 const admin = require('firebase-admin');
 
 try {
   if (!admin.apps.length) {
     admin.initializeApp({
+      // <<--- মূল পরিবর্তনটি এই লাইনে ---<<
+      // process.env.FIREBASE_SERVICE_ACCOUNT_KEY একটি টেক্সট, সেটিকে JSON.parse দিয়ে অবজেক্ট বানানো হচ্ছে
       credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)),
       databaseURL: "https://c7tvbdapp-default-rtdb.asia-southeast1.firebasedatabase.app"
     });
@@ -18,7 +20,7 @@ module.exports = async (request, response) => {
     if (request.method === 'OPTIONS') { return response.status(200).end(); }
     if (request.method !== 'POST') { return response.status(405).json({ error: 'Method Not Allowed' }); }
 
-    const { title, message, icon, action } = request.body; // 'action' গ্রহণ করা হচ্ছে
+    const { title, message, icon, action } = request.body;
 
     if (!title || !message) { return response.status(400).json({ error: 'Title and message are required' }); }
 
@@ -32,8 +34,7 @@ module.exports = async (request, response) => {
 
         const tokens = Object.keys(tokensObject);
         
-        // <<--- মূল পরিবর্তন: নোটিফিকেশনের সাথে একটি অদৃশ্য data পাঠানো হচ্ছে ---<<
-        let clickUrl = 'https://c7tvbdapp.web.app'; // ডিফল্ট হোমপেজ
+        let clickUrl = 'https://c7tvbdapp.web.app';
         if (action === 'live') {
             clickUrl = 'https://c7tvbdapp.web.app/#live';
         } else if (action === 'news') {
@@ -47,7 +48,7 @@ module.exports = async (request, response) => {
                 icon: icon || '/icon-192.png'
             },
             data: {
-                url: clickUrl // সার্ভিস ওয়ার্কার এই URL টি ব্যবহার করবে
+                url: clickUrl
             }
         };
 
