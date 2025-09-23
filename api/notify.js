@@ -1,7 +1,6 @@
-// <<--- notify.js এর নতুন এবং সম্পূর্ণ সঠিক কোড ---<<
+// <<--- notify.js এর নতুন কোড (কার্ড বা Blaze প্ল্যান ছাড়া কাজ করবে) ---<<
 const admin = require('firebase-admin');
 
-// Firebase Admin SDK আরম্ভ করা
 try {
   if (!admin.apps.length) {
     admin.initializeApp({
@@ -9,29 +8,19 @@ try {
       databaseURL: "https://c7tvbdapp-default-rtdb.asia-southeast1.firebasedatabase.app"
     });
   }
-} catch (error) {
-  console.error('Firebase admin initialization error', error);
-}
+} catch (error) { console.error('Firebase admin initialization error', error); }
 
 module.exports = async (request, response) => {
-    // CORS হেডার যোগ করা
     response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     response.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
 
-    if (request.method === 'OPTIONS') {
-        return response.status(200).end();
-    }
-    
-    if (request.method !== 'POST') {
-        return response.status(405).json({ error: 'Method Not Allowed' });
-    }
+    if (request.method === 'OPTIONS') { return response.status(200).end(); }
+    if (request.method !== 'POST') { return response.status(405).json({ error: 'Method Not Allowed' }); }
 
-    const { title, message, icon, actionUrl } = request.body;
+    const { title, message, icon, action } = request.body; // 'action' গ্রহণ করা হচ্ছে
 
-    if (!title || !message) {
-        return response.status(400).json({ error: 'Title and message are required' });
-    }
+    if (!title || !message) { return response.status(400).json({ error: 'Title and message are required' }); }
 
     const db = admin.database();
     const tokensRef = db.ref('fcm_tokens');
@@ -39,31 +28,30 @@ module.exports = async (request, response) => {
     try {
         const snapshot = await tokensRef.once('value');
         const tokensObject = snapshot.val();
-
-        if (!tokensObject) {
-            return response.status(200).json({ success: true, message: 'No registered devices to notify.' });
-        }
+        if (!tokensObject) { return response.status(200).json({ success: true, message: 'No devices to notify.' }); }
 
         const tokens = Object.keys(tokensObject);
+        
+        // <<--- মূল পরিবর্তন: নোটিফিকেশনের সাথে একটি অদৃশ্য data পাঠানো হচ্ছে ---<<
+        let clickUrl = 'https://c7tvbdapp.web.app'; // ডিফল্ট হোমপেজ
+        if (action === 'live') {
+            clickUrl = 'https://c7tvbdapp.web.app/#live';
+        } else if (action === 'news') {
+            clickUrl = 'https://c7tvbdapp.web.app/#news';
+        }
 
-        // <<--- মূল পরিবর্তন এখানে ---<<
-        // ১. আমরা একটি 'message' অবজেক্ট তৈরি করছি
-        const messagePayload = {
+        const payload = {
             notification: {
                 title: title,
                 body: message,
                 icon: icon || '/icon-192.png'
             },
-            webpush: {
-                fcmOptions: { // এখানে fcm_options এর বদলে fcmOptions হবে (camelCase)
-                    link: actionUrl || 'https://c7tvbdapp.web.app' 
-                }
-            },
-            tokens: tokens, // ২. টোকেনগুলো এখন message অবজেক্টের ভেতরে থাকবে
+            data: {
+                url: clickUrl // সার্ভিস ওয়ার্কার এই URL টি ব্যবহার করবে
+            }
         };
 
-        // ৩. sendToDevice এর বদলে sendMulticast ব্যবহার করা হচ্ছে
-        const messagingResponse = await admin.messaging().sendMulticast(messagePayload);
+        const messagingResponse = await admin.messaging().sendToDevice(tokens, payload);
         
         console.log('Successfully sent message:', messagingResponse);
         return response.status(200).json({ success: true, results: messagingResponse.results });
