@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const axios = require('axios'); // এটি error report করার জন্য
+
 
 // Vercel Environment Variables থেকে আপনার কী লোড করা হচ্ছে
 try {
@@ -57,16 +57,14 @@ module.exports = async (request, response) => {
 
     const messagingResponse = await admin.messaging().sendToDevice(tokens, payload);
     
-    // ডাটাবেসে নোটিফিকেশনটি সেভ করা (আপনার পুরনো ইন-অ্যাপ সিস্টেমের জন্য)
-    const notificationForDB = { title, message, icon, timestamp: admin.database.ServerValue.TIMESTAMP };
+     // ডাটাবেসে নোটিফিকেশনটি সেভ করা (আপনার পুরনো ইন-অ্যাপ সিস্টেমের জন্য)
+    const notificationForDB = { title, message, icon, timestamp: admin.database.ServerValue.TIMESTAMP, link };
     await db.ref('notifications').push(notificationForDB);
 
     return response.status(200).json({ success: true, response: messagingResponse });
 
   } catch (error) {
-    await axios.post(process.env.DISCORD_WEBHOOK_URL, {
-        content: `Error sending notification: ${error.message}`
-    });
+    console.error("Detailed Error in Catch Block:", error); // আসল এরর দেখার জন্য
     return response.status(500).json({ error: 'Failed to send notification', details: error.message });
   }
 };
